@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require ('cors');
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
 require('dotenv').config()
 const app = express();
 const port = process.env.port || 5000;
@@ -12,7 +12,7 @@ const port = process.env.port || 5000;
 app.use(cors());
 app.use(express.json());
 
-
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fwbvrwr.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -31,6 +31,7 @@ async function run() {
 
     const toyCategory = client.db('toyLand').collection('toyCategories');
     const toyCollection= client.db('toyLand').collection('toys');
+
     app.get('/categories', async(req, res)=>{
         const cursor = toyCategory.find();
         const result = await cursor.toArray();
@@ -83,17 +84,39 @@ async function run() {
     // View detail from all toy details page  
 
     app.get('/toy/:id', async (req, res) => {
-      // Retrieve the dynamic parameter values from the request URL
       const id = req.params.id;
       console.log('I wanna see data for id', id);
-      // Construct a query using the dynamic parameter value
       const query = { _id: new ObjectId(id) };
-      // Retrieve the toy category based on the query
       const result = await toyCollection.findOne(query);
-      // Send the toy as the response
       res.json(result);
     });
 
+    app.get('/toys/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log('I wanna see data for id', id);
+      const query = { _id: new ObjectId(id) };
+      const result = await toyCollection.findOne(query);
+      res.json(result);
+    });
+
+    //Update toy data
+    app.put('/toys/:id', async (req, res)=>{
+      const id = req.params.id;
+      const updateToys = req.body;
+      console.log(updateToys);
+      const filter= {_id: new ObjectId(id)}
+      const options = {upsert:true}
+      const updateToy= {
+        $set:{
+          toyName: updateToys.name,
+          price: updateToys.price,
+          availableQuantity: updateToys.quantity,
+          detailDescription: updateToys.details,
+        }
+      }
+      const result = await toyCollection.updateOne (filter, updateToy, options);
+      res.send(result);
+    })
 
     app.delete("/remove/:id", async (req, res) => {
       console.log(req.params);
@@ -109,12 +132,10 @@ async function run() {
     app.put("/update/:id", async (req, res) => {
       const id = req.params.id;
       const body = req.body;
-
       const option = {
         upsert: true,
       };
       const query = { _id: new ObjectId(id) };
-
       const serviceData = {
         $set: {
           name: body.price,
@@ -154,11 +175,6 @@ async function run() {
 //   // Send the toy as the response
 //   res.send(toy);
 // });
-
- 
-      
-      
-      
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
